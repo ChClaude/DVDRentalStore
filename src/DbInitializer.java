@@ -74,6 +74,8 @@ public class DbInitializer {
     }
 
     public static void readAndInsertData() {
+        int num = 0;
+
         try (
                 InputStream file = new FileInputStream("./src/Customers.ser");
                 InputStream buffer = new BufferedInputStream(file);
@@ -92,9 +94,11 @@ public class DbInitializer {
                 statement.setBoolean(6, customer.canRent());
 
                 statement.executeUpdate();
+                num++;
             }
 
         } catch (EOFException ignored) {
+            System.out.println(num + " customers inserted");
         } catch (ClassNotFoundException | IOException ex) {
             System.err.println(ex.getMessage());
         } catch (SQLException throwables) {
@@ -106,6 +110,7 @@ public class DbInitializer {
                 InputStream buffer = new BufferedInputStream(file);
                 ObjectInput input = new ObjectInputStream(buffer)
         ) {
+            num = 0;
             while (true) {
                 //deserialize the List
                 DVD dvd = (DVD) input.readObject();
@@ -119,9 +124,11 @@ public class DbInitializer {
                 statement.setBoolean(6, dvd.isAvailable());
 
                 statement.executeUpdate();
+                num++;
             }
 
         } catch (EOFException ignored) {
+            System.out.println(num + " DVDs inserted");
         } catch (ClassNotFoundException | IOException ex) {
             System.err.println(ex.getMessage());
         } catch (SQLException throwables) {
@@ -133,6 +140,7 @@ public class DbInitializer {
                 InputStream buffer = new BufferedInputStream(file);
                 ObjectInput input = new ObjectInputStream(buffer)
         ) {
+            num = 0;
             while (true) {
                 //deserialize the List
                 Rental rental = (Rental) input.readObject();
@@ -146,11 +154,11 @@ public class DbInitializer {
                 statement.setInt(6, rental.getDvdNumber());
 
                 statement.executeUpdate();
-
-                System.out.println(rental);
+                num++;
             }
 
         } catch (EOFException ignored) {
+            System.out.println(num + " rentals inserted");
         } catch (ClassNotFoundException | IOException ex) {
             System.err.println(ex.getMessage());
         } catch (SQLException throwables) {
