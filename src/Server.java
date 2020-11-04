@@ -84,9 +84,89 @@ public class Server {
                         listCustomers();
                         break;
                     }
+                    case "list rentals": {
+                        listRentals("all");
+                        break;
+                    }
+                    case "list outstanding rentals": {
+                        listRentals("outstanding");
+                        break;
+                    }
+                    case "search movies": {
+                        searchMovie();
+                        break;
+                    }
+                    default: {
+                        listRentals(in); // this the case where the in value will contain a slash /
+                        break;
+                    }
                 }
             }
         }catch(IOException | ClassNotFoundException e){
+            e.printStackTrace();
+        }
+    }
+
+    private void searchMovie() {
+        try {
+            String in = (String) inputStream.readObject();
+
+            ResultSet set = stmt.executeQuery("select * from DVD where upper(TITLE) like '%" + in.toUpperCase() + "%'");
+            List<DVD> dvdList = new ArrayList<>();
+
+            while (set.next()){
+                int dvdNumber= set.getInt("dvdNumber");
+                String title = set.getString("title");
+                String category = set.getString("category");
+                boolean newRelease = set.getBoolean("newRelease");
+                boolean availableForRent = set.getBoolean("availableForRent");
+
+                DVD dvd = new DVD(dvdNumber, title, category, newRelease, availableForRent);
+                dvdList.add(dvd);
+            }
+            dvdList.sort(Comparator.comparing(DVD::getCategory));
+
+            outStream.writeObject(dvdList);
+            outStream.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
+    }
+
+    private void listRentals(String option) {
+        try{
+            ResultSet set;
+            if (option.equalsIgnoreCase("outstanding")) {
+                set = stmt.executeQuery("SELECT * FROM RENTAL WHERE DATERETURNED='NA'");
+            } else if(option.contains("/")) {
+                set = stmt.executeQuery("SELECT * FROM RENTAL WHERE DATERENTED='" + option + "'");
+            }else {
+                set = stmt.executeQuery("SELECT * FROM RENTAL");
+            }
+
+            List<Rental> rentalList = new ArrayList<>();
+
+            while (set.next()){
+                int rentalNumber= set.getInt("rentalNumber");
+                String dateRented = set.getString("dateRented");
+                String dateReturned = set.getString("dateReturned");
+                double totalPenaltyCost = set.getDouble("totalPenaltyCost");
+                int custNumber = set.getInt("custNumber");
+                int dvdNumber = set.getInt("dvdNumber");
+
+                Rental rental = new Rental(rentalNumber, dateRented, dateReturned, custNumber, dvdNumber);
+                rentalList.add(rental);
+            }
+
+            rentalList.sort(Comparator.comparing(Rental::getDateRented));
+
+            outStream.writeObject(rentalList);
+            outStream.flush();
+        }catch (SQLException | IOException e){
             e.printStackTrace();
         }
     }
@@ -250,6 +330,7 @@ public class Server {
                 stmt.executeUpdate("create table dvd(dvdNumber int not null, title varchar(40), category varchar(40)," +
                         "price double, newRelease boolean, availableForRent boolean, primary key (dvdNumber))");
 
+                // TODO: Make sure all the date inserted has the following format yyyy/mm/dd - there's a date inserted as 2016/9/01 which makes it hard to search
                 stmt.executeUpdate("create table rental(rentalNumber int not null, dateRented varchar(40), dateReturned " +
                         "varchar(40), totalPenaltyCost decimal(10, 2), custNumber int, dvdNumber int, primary key (rentalNumber), " +
                         "constraint custNumber_fk FOREIGN KEY (custNumber) REFERENCES customer(custNumber), constraint dvdNumber_fk " +

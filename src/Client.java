@@ -1,7 +1,11 @@
 import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ContainerEvent;
+import java.awt.event.ContainerListener;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -29,7 +33,7 @@ public class Client {
 
         JPanel mainPanel = new JPanel();
 
-        GridLayout layout = new GridLayout(4, 1);
+        GridLayout layout = new GridLayout(8, 1);
         layout.setVgap(50);
         mainPanel.setLayout(layout);
 
@@ -38,6 +42,10 @@ public class Client {
 
         mainPanel.add(movieListPanel());
         mainPanel.add(customerListPanel());
+        mainPanel.add(searchMoviePanel());
+        mainPanel.add(rentalListPanel());
+        mainPanel.add(outstandingRentalListPanel());
+        mainPanel.add(searchRentalPanel());
 
         frame.add(new JScrollPane(mainPanel));
 
@@ -180,9 +188,217 @@ public class Client {
         return mainPanel;
     }
 
+    private static JPanel rentalListPanel() {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.PAGE_AXIS));
+        panel.setSize(300, 50);
+        JButton listRentalsBtn = new JButton("List All Rentals");
+        listRentalsBtn.setSize(150, 150);
+        listRentalsBtn.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    String [] [] data;
+
+                    String [] columnNames = {"#",  "Date Rented", "Date Returned", "Customer Number", "DVD Number", "Total Penalty Cost"};
+                    List<Rental> rentalList;
+
+                    outputStream.writeObject("list rentals");
+                    rentalList = (ArrayList<Rental>) inStream.readObject();
+
+                    int size = rentalList.size();
+                    data = new String[size][6];
+
+                    for (int i = 0; i < size; i++) {
+                        Rental el = rentalList.get(i);
+                        data[i][0] = ((Integer) el.getRentalNumber()).toString();
+                        data[i][1] = el.getDateRented();
+                        data[i][2] = el.getDateReturned();
+                        data[i][3] = ((Integer)el.getCustNumber()).toString();
+                        data[i][4] = ((Integer)el.getDvdNumber()).toString();
+                        data[i][5] = ((Double) el.getTotalPenaltyCost()).toString();
+                    }
+
+                    JTable table = new JTable(data, columnNames);
+                    JScrollPane scrollPane = new JScrollPane(table);
+                    scrollPane.setPreferredSize(new Dimension(800, 100));
+                    panel.add(scrollPane);
+                    SwingUtilities.updateComponentTreeUI(frame);
+
+                } catch (IOException | ClassNotFoundException ex) {
+                    ex.printStackTrace();
+                }
+            }
+        });
+
+        panel.add(new JLabel("List All Rentals"));
+        panel.add(listRentalsBtn);
+
+        return panel;
+    }
+
+    private static JPanel outstandingRentalListPanel() {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.PAGE_AXIS));
+        panel.setSize(300, 50);
+        JButton listOutsdRentalsBtn = new JButton("List Outstanding Rentals");
+        listOutsdRentalsBtn.setSize(150, 150);
+        listOutsdRentalsBtn.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    String [] [] data;
+
+                    String [] columnNames = {"#",  "Date Rented", "Date Returned", "Customer Number", "DVD Number", "Total Penalty Cost"};
+                    List<Rental> rentalList;
+
+                    outputStream.writeObject("list outstanding rentals");
+                    rentalList = (ArrayList<Rental>) inStream.readObject();
+
+                    int size = rentalList.size();
+                    data = new String[size][6];
+
+                    for (int i = 0; i < size; i++) {
+                        Rental el = rentalList.get(i);
+                        data[i][0] = ((Integer) el.getRentalNumber()).toString();
+                        data[i][1] = el.getDateRented();
+                        data[i][2] = el.getDateReturned();
+                        data[i][3] = ((Integer)el.getCustNumber()).toString();
+                        data[i][4] = ((Integer)el.getDvdNumber()).toString();
+                        data[i][5] = ((Double) el.getTotalPenaltyCost()).toString();
+                    }
+
+                    JTable table = new JTable(data, columnNames);
+                    JScrollPane scrollPane = new JScrollPane(table);
+                    scrollPane.setPreferredSize(new Dimension(800, 100));
+                    panel.add(scrollPane);
+                    SwingUtilities.updateComponentTreeUI(frame);
+
+                } catch (IOException | ClassNotFoundException ex) {
+                    ex.printStackTrace();
+                }
+            }
+        });
+
+        panel.add(new JLabel("List Outstanding Rentals"));
+        panel.add(listOutsdRentalsBtn);
+
+        return panel;
+    }
+
+    private static JPanel searchRentalPanel() {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.PAGE_AXIS));
+        JButton searchRentalsBtn = new JButton("Search Rentals");
+        JTextField searchTextField = new JTextField("Enter date as yyyy/mm/dd");
+        searchTextField.setSize(100, 50);
+
+        searchRentalsBtn.setSize(150, 150);
+        searchRentalsBtn.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    String [] [] data;
+
+                    String [] columnNames = {"#",  "Date Rented", "Date Returned", "Customer Number", "DVD Number", "Total Penalty Cost"};
+                    List<Rental> rentalList;
+
+                    outputStream.writeObject(searchTextField.getText());
+                    rentalList = (ArrayList<Rental>) inStream.readObject();
+
+                    int size = rentalList.size();
+                    data = new String[size][6];
+
+                    for (int i = 0; i < size; i++) {
+                        Rental el = rentalList.get(i);
+                        data[i][0] = ((Integer) el.getRentalNumber()).toString();
+                        data[i][1] = el.getDateRented();
+                        data[i][2] = el.getDateReturned();
+                        data[i][3] = ((Integer)el.getCustNumber()).toString();
+                        data[i][4] = ((Integer)el.getDvdNumber()).toString();
+                        data[i][5] = ((Double) el.getTotalPenaltyCost()).toString();
+                    }
+
+                    JTable table = new JTable(data, columnNames);
+                    JScrollPane scrollPane = new JScrollPane(table);
+                    scrollPane.setPreferredSize(new Dimension(800, 100));
+                    panel.add(scrollPane);
+                    SwingUtilities.updateComponentTreeUI(frame);
+
+                } catch (IOException | ClassNotFoundException ex) {
+                    ex.printStackTrace();
+                }
+            }
+        });
+
+        panel.add(new JLabel("Search rentals by date"));
+        panel.add(searchTextField);
+        panel.add(searchRentalsBtn);
+
+        return panel;
+    }
+
+    private static JPanel searchMoviePanel() {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.PAGE_AXIS));
+        JTextField searchTextField = new JTextField("Enter a name for a movie");
+        searchTextField.setSize(100, 50);
+
+        searchTextField.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                try {
+                    String [] [] data;
+
+                    String [] columnNames = {"#",  "Date Rented", "Date Returned", "Customer Number", "DVD Number", "Total Penalty Cost"};
+                    List<DVD> movieList;
+
+                    outputStream.writeObject("search movies");
+                    outputStream.writeObject(searchTextField.getText());
+                    movieList = (ArrayList<DVD>) inStream.readObject();
+
+                    int size = movieList.size();
+                    data = new String[size][6];
+
+                    for (int i = 0; i < size; i++) {
+                        DVD el = movieList.get(i);
+                        data[i][0] = ((Integer) el.getDvdNumber()).toString();
+                        data[i][1] = el.getTitle();
+                        data[i][2] = el.getCategory();
+                        data[i][3] = ((Double) el.getPrice()).toString();
+                        data[i][4] = ((Boolean) el.isNewRelease()).toString();
+                        data[i][5] = ((Boolean) el.isAvailable()).toString();
+                    }
+
+                    JTable table = new JTable(data, columnNames);
+                    JScrollPane scrollPane = new JScrollPane(table);
+                    scrollPane.setPreferredSize(new Dimension(800, 100));
+                    panel.add(scrollPane);
+                    SwingUtilities.updateComponentTreeUI(frame);
+
+                } catch (IOException | ClassNotFoundException ex) {
+                    ex.printStackTrace();
+                }
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+            }
+        });
+
+        panel.add(new JLabel("Search Movies"));
+        panel.add(searchTextField);
+
+        return panel;
+    }
+
+
     private static JPanel movieListPanel() {
         JPanel panel = new JPanel();
-//        GridLayout gridLayout = new GridLayout(0,1);
         panel.setLayout(new BoxLayout(panel, BoxLayout.PAGE_AXIS));
         panel.setSize(300, 50);
         JButton listMoviesBtn = new JButton("List Movies");
