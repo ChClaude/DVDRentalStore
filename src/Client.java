@@ -15,7 +15,6 @@ import java.util.StringTokenizer;
 
 public class Client {
 
-    private static Socket connectToServer;
     private static ObjectInputStream inStream;
     private static ObjectOutputStream outputStream;
     private static JFrame frame;
@@ -59,7 +58,7 @@ public class Client {
 
     private static void initiateConnectionToServer() {
         try {
-            connectToServer = new Socket("localhost", 5559);
+            Socket connectToServer = new Socket("localhost", 5559);
             System.out.println("Connection Established");
 
             outputStream = new ObjectOutputStream(connectToServer.getOutputStream());
@@ -132,8 +131,8 @@ public class Client {
             });
 
             rentDvdBtn.addActionListener(e -> {
-                String custNumber = new StringTokenizer(customerJList.getSelectedValue()).nextToken(" ----- ");
-                String dvdNumber = new StringTokenizer((String) dvdList.getSelectedValue()).nextToken(" ----- ");
+                String custNumber = new StringTokenizer(customerJList.getSelectedValue()).nextToken(" -");
+                String dvdNumber = new StringTokenizer((String) dvdList.getSelectedValue()).nextToken(" -");
 
                 try {
 
@@ -279,40 +278,18 @@ public class Client {
         panel.setSize(300, 50);
         JButton listRentalsBtn = new JButton("List All Rentals");
         listRentalsBtn.setSize(150, 150);
-        listRentalsBtn.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                try {
-                    String[][] data;
+        listRentalsBtn.addActionListener(e -> {
+            try {
+                String[][] data;
 
-                    String[] columnNames = {"#", "Date Rented", "Date Returned", "Customer Number", "DVD Number", "Total Penalty Cost"};
-                    List<Rental> rentalList;
+                String[] columnNames = {"#", "Date Rented", "Date Returned", "Customer Number", "DVD Number", "Total Penalty Cost"};
+                List<Rental> rentalList;
 
-                    outputStream.writeObject("list rentals");
-                    rentalList = (ArrayList<Rental>) inStream.readObject();
+                outputStream.writeObject("list rentals");
+                setRentalJTable(panel, columnNames);
 
-                    int size = rentalList.size();
-                    data = new String[size][6];
-
-                    for (int i = 0; i < size; i++) {
-                        Rental el = rentalList.get(i);
-                        data[i][0] = ((Integer) el.getRentalNumber()).toString();
-                        data[i][1] = el.getDateRented();
-                        data[i][2] = el.getDateReturned();
-                        data[i][3] = ((Integer) el.getCustNumber()).toString();
-                        data[i][4] = ((Integer) el.getDvdNumber()).toString();
-                        data[i][5] = ((Double) el.getTotalPenaltyCost()).toString();
-                    }
-
-                    JTable table = new JTable(data, columnNames);
-                    JScrollPane scrollPane = new JScrollPane(table);
-                    scrollPane.setPreferredSize(new Dimension(800, 100));
-                    panel.add(scrollPane);
-                    SwingUtilities.updateComponentTreeUI(frame);
-
-                } catch (IOException | ClassNotFoundException ex) {
-                    ex.printStackTrace();
-                }
+            } catch (IOException | ClassNotFoundException ex) {
+                ex.printStackTrace();
             }
         });
 
@@ -392,26 +369,7 @@ public class Client {
                     List<Rental> rentalList;
 
                     outputStream.writeObject("list outstanding rentals");
-                    rentalList = (ArrayList<Rental>) inStream.readObject();
-
-                    int size = rentalList.size();
-                    data = new String[size][6];
-
-                    for (int i = 0; i < size; i++) {
-                        Rental el = rentalList.get(i);
-                        data[i][0] = ((Integer) el.getRentalNumber()).toString();
-                        data[i][1] = el.getDateRented();
-                        data[i][2] = el.getDateReturned();
-                        data[i][3] = ((Integer) el.getCustNumber()).toString();
-                        data[i][4] = ((Integer) el.getDvdNumber()).toString();
-                        data[i][5] = ((Double) el.getTotalPenaltyCost()).toString();
-                    }
-
-                    JTable table = new JTable(data, columnNames);
-                    JScrollPane scrollPane = new JScrollPane(table);
-                    scrollPane.setPreferredSize(new Dimension(800, 100));
-                    panel.add(scrollPane);
-                    SwingUtilities.updateComponentTreeUI(frame);
+                    setRentalJTable(panel, columnNames);
 
                 } catch (IOException | ClassNotFoundException ex) {
                     ex.printStackTrace();
@@ -441,26 +399,7 @@ public class Client {
                 List<Rental> rentalList;
 
                 outputStream.writeObject(searchTextField.getText());
-                rentalList = (ArrayList<Rental>) inStream.readObject();
-
-                int size = rentalList.size();
-                data = new String[size][6];
-
-                for (int i = 0; i < size; i++) {
-                    Rental el = rentalList.get(i);
-                    data[i][0] = ((Integer) el.getRentalNumber()).toString();
-                    data[i][1] = el.getDateRented();
-                    data[i][2] = el.getDateReturned();
-                    data[i][3] = ((Integer) el.getCustNumber()).toString();
-                    data[i][4] = ((Integer) el.getDvdNumber()).toString();
-                    data[i][5] = ((Double) el.getTotalPenaltyCost()).toString();
-                }
-
-                JTable table = new JTable(data, columnNames);
-                JScrollPane scrollPane = new JScrollPane(table);
-                scrollPane.setPreferredSize(new Dimension(800, 100));
-                panel.add(scrollPane);
-                SwingUtilities.updateComponentTreeUI(frame);
+                setRentalJTable(panel, columnNames);
 
             } catch (IOException | ClassNotFoundException ex) {
                 ex.printStackTrace();
@@ -472,6 +411,31 @@ public class Client {
         panel.add(searchRentalsBtn);
 
         return panel;
+    }
+
+    private static void setRentalJTable(JPanel panel, String[] columnNames) throws IOException, ClassNotFoundException {
+        List<Rental> rentalList;
+        String[][] data;
+        rentalList = (ArrayList<Rental>) inStream.readObject();
+
+        int size = rentalList.size();
+        data = new String[size][6];
+
+        for (int i = 0; i < size; i++) {
+            Rental el = rentalList.get(i);
+            data[i][0] = ((Integer) el.getRentalNumber()).toString();
+            data[i][1] = el.getDateRented();
+            data[i][2] = el.getDateReturned();
+            data[i][3] = ((Integer) el.getCustNumber()).toString();
+            data[i][4] = ((Integer) el.getDvdNumber()).toString();
+            data[i][5] = ((Double) el.getTotalPenaltyCost()).toString();
+        }
+
+        JTable table = new JTable(data, columnNames);
+        JScrollPane scrollPane = new JScrollPane(table);
+        scrollPane.setPreferredSize(new Dimension(800, 100));
+        panel.add(scrollPane);
+        SwingUtilities.updateComponentTreeUI(frame);
     }
 
     private static JPanel searchMoviePanel() {
@@ -493,26 +457,7 @@ public class Client {
 
                     outputStream.writeObject("search movies");
                     outputStream.writeObject(searchTextField.getText());
-                    movieList = (ArrayList<DVD>) inStream.readObject();
-
-                    int size = movieList.size();
-                    data = new String[size][6];
-
-                    for (int i = 0; i < size; i++) {
-                        DVD el = movieList.get(i);
-                        data[i][0] = ((Integer) el.getDvdNumber()).toString();
-                        data[i][1] = el.getTitle();
-                        data[i][2] = el.getCategory();
-                        data[i][3] = ((Double) el.getPrice()).toString();
-                        data[i][4] = ((Boolean) el.isNewRelease()).toString();
-                        data[i][5] = ((Boolean) el.isAvailable()).toString();
-                    }
-
-                    JTable table = new JTable(data, columnNames);
-                    JScrollPane scrollPane = new JScrollPane(table);
-                    scrollPane.setPreferredSize(new Dimension(800, 100));
-                    panel.add(scrollPane);
-                    SwingUtilities.updateComponentTreeUI(frame);
+                    setMovieJTable(columnNames, panel);
 
                 } catch (IOException | ClassNotFoundException ex) {
                     ex.printStackTrace();
@@ -534,6 +479,31 @@ public class Client {
         return panel;
     }
 
+    private static void setMovieJTable(String[] columnNames, JPanel panel) throws IOException, ClassNotFoundException {
+        List<DVD> movieList;
+        String[][] data;
+        movieList = (ArrayList<DVD>) inStream.readObject();
+
+        int size = movieList.size();
+        data = new String[size][6];
+
+        for (int i = 0; i < size; i++) {
+            DVD el = movieList.get(i);
+            data[i][0] = ((Integer) el.getDvdNumber()).toString();
+            data[i][1] = el.getTitle();
+            data[i][2] = el.getCategory();
+            data[i][3] = ((Double) el.getPrice()).toString();
+            data[i][4] = ((Boolean) el.isNewRelease()).toString();
+            data[i][5] = ((Boolean) el.isAvailable()).toString();
+        }
+
+        JTable table = new JTable(data, columnNames);
+        JScrollPane scrollPane = new JScrollPane(table);
+        scrollPane.setPreferredSize(new Dimension(800, 100));
+        panel.add(scrollPane);
+        SwingUtilities.updateComponentTreeUI(frame);
+    }
+
     private static JPanel movieListPanel() {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.PAGE_AXIS));
@@ -548,26 +518,7 @@ public class Client {
                 List<DVD> movieList;
 
                 outputStream.writeObject("list movies");
-                movieList = (ArrayList<DVD>) inStream.readObject();
-
-                int size = movieList.size();
-                data = new String[size][6];
-
-                for (int i = 0; i < size; i++) {
-                    DVD el = movieList.get(i);
-                    data[i][0] = ((Integer) el.getDvdNumber()).toString();
-                    data[i][1] = el.getTitle();
-                    data[i][2] = el.getCategory();
-                    data[i][3] = ((Double) el.getPrice()).toString();
-                    data[i][4] = ((Boolean) el.isNewRelease()).toString();
-                    data[i][5] = ((Boolean) el.isAvailable()).toString();
-                }
-
-                JTable table = new JTable(data, columnNames);
-                JScrollPane scrollPane = new JScrollPane(table);
-                scrollPane.setPreferredSize(new Dimension(800, 100));
-                panel.add(scrollPane);
-                SwingUtilities.updateComponentTreeUI(frame);
+                setMovieJTable(columnNames, panel);
 
             } catch (IOException | ClassNotFoundException ex) {
                 ex.printStackTrace();
@@ -588,40 +539,37 @@ public class Client {
         JLabel label = new JLabel("List customers");
         JButton listMoviesBtn = new JButton("List Customers");
         listMoviesBtn.setSize(150, 150);
-        listMoviesBtn.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                try {
-                    String[][] data;
+        listMoviesBtn.addActionListener(e -> {
+            try {
+                String[][] data;
 
-                    String[] columnNames = {"#", "Firstname", "Surname", "Phone Number", "Credit", "Can Rent"};
-                    List<Customer> customerList;
+                String[] columnNames = {"#", "Firstname", "Surname", "Phone Number", "Credit", "Can Rent"};
+                List<Customer> customerList;
 
-                    outputStream.writeObject("list customers");
-                    customerList = (ArrayList<Customer>) inStream.readObject();
+                outputStream.writeObject("list customers");
+                customerList = (ArrayList<Customer>) inStream.readObject();
 
-                    int size = customerList.size();
-                    data = new String[size][6];
+                int size = customerList.size();
+                data = new String[size][6];
 
-                    for (int i = 0; i < size; i++) {
-                        Customer el = customerList.get(i);
-                        data[i][0] = ((Integer) el.getCustNumber()).toString();
-                        data[i][1] = el.getName();
-                        data[i][2] = el.getSurname();
-                        data[i][3] = el.getPhoneNum();
-                        data[i][4] = ((Double) el.getCredit()).toString();
-                        data[i][5] = ((Boolean) el.canRent()).toString();
-                    }
-
-                    JTable table = new JTable(data, columnNames);
-                    JScrollPane scrollPane = new JScrollPane(table);
-                    scrollPane.setPreferredSize(new Dimension(800, 100));
-                    panel.add(scrollPane);
-                    SwingUtilities.updateComponentTreeUI(frame);
-
-                } catch (IOException | ClassNotFoundException ex) {
-                    ex.printStackTrace();
+                for (int i = 0; i < size; i++) {
+                    Customer el = customerList.get(i);
+                    data[i][0] = ((Integer) el.getCustNumber()).toString();
+                    data[i][1] = el.getName();
+                    data[i][2] = el.getSurname();
+                    data[i][3] = el.getPhoneNum();
+                    data[i][4] = ((Double) el.getCredit()).toString();
+                    data[i][5] = ((Boolean) el.canRent()).toString();
                 }
+
+                JTable table = new JTable(data, columnNames);
+                JScrollPane scrollPane = new JScrollPane(table);
+                scrollPane.setPreferredSize(new Dimension(800, 100));
+                panel.add(scrollPane);
+                SwingUtilities.updateComponentTreeUI(frame);
+
+            } catch (IOException | ClassNotFoundException ex) {
+                ex.printStackTrace();
             }
         });
 
