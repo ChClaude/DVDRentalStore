@@ -4,8 +4,6 @@ import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.ContainerEvent;
-import java.awt.event.ContainerListener;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -13,19 +11,20 @@ import java.net.Socket;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.StringTokenizer;
 
 public class Client {
 
     private static Socket connectToServer;
     private static ObjectInputStream inStream;
     private static ObjectOutputStream outputStream;
+    private static JFrame frame;
 
     public static void initialize() {
         connectToServer();
         setClientUI();
     }
 
-    private static JFrame frame;
     private static void setClientUI() {
         frame = new JFrame();
         frame.setTitle("Dvd Rental Management System");
@@ -33,18 +32,22 @@ public class Client {
 
         JPanel mainPanel = new JPanel();
 
-        GridLayout layout = new GridLayout(8, 1);
+        GridLayout layout = new GridLayout(9, 1);
         layout.setVgap(50);
-        mainPanel.setLayout(layout);
+//        mainPanel.setLayout(layout);
+        mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.PAGE_AXIS));
 
         mainPanel.add(customerPanel());
         mainPanel.add(dvdPanel());
+
+        mainPanel.add(rentDvdPanel());
 
         mainPanel.add(movieListPanel());
         mainPanel.add(customerListPanel());
         mainPanel.add(searchMoviePanel());
         mainPanel.add(rentalListPanel());
         mainPanel.add(outstandingRentalListPanel());
+        mainPanel.add(returnRentalPanel());
         mainPanel.add(searchRentalPanel());
 
         frame.add(new JScrollPane(mainPanel));
@@ -53,34 +56,134 @@ public class Client {
         frame.setVisible(true);
     }
 
-    public static void connectToServer(){
+    public static void connectToServer() {
         initiateConnectionToServer();
     }
 
     private static void initiateConnectionToServer() {
-        try{
-            connectToServer = new Socket("localhost",5559);
+        try {
+            connectToServer = new Socket("localhost", 5559);
             System.out.println("Connection Established");
 
             outputStream = new ObjectOutputStream(connectToServer.getOutputStream());
             inStream = new ObjectInputStream(connectToServer.getInputStream());
-        }catch (IOException ex){
+        } catch (IOException ex) {
             ex.printStackTrace();
         }
+    }
+
+    private static JPanel rentDvdPanel() {
+        JPanel mainPanel = new JPanel();
+        JPanel panel = new JPanel();
+        GridLayout gridLayout = new GridLayout(0, 2);
+        panel.setLayout(gridLayout);
+
+        JButton proceedDvdBtn = new JButton("Proceed");
+        JButton rentDvdBtn = new JButton("Rent DVD");
+
+        mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.PAGE_AXIS));
+
+        try {
+            String[][] data;
+
+            String[] columnNames = {"#", "Firstname", "Surname", "Phone Number", "Credit", "Can Rent"};
+            List<Customer> customerList;
+
+            outputStream.writeObject("list customers");
+            customerList = (ArrayList<Customer>) inStream.readObject();
+
+            // customer info
+            List<String> customers = new ArrayList<>();
+            for (Customer customer : customerList) {
+                customers.add(String.format("%s ----- %s ----- %s", customer.getCustNumber(), customer.getName(),
+                        customer.getSurname()));
+            }
+            JList<String> customerJList = new JList(customers.toArray());
+            JScrollPane scrollPane = new JScrollPane(customerJList);
+
+            String[] category = {"Horror", "Sci-fi", "Drama", "Romance", "Comedy", "Action", "Cartoon"};
+            JList categoryJList = new JList(category);
+
+            JScrollPane scrollPane2 = new JScrollPane(categoryJList);
+
+            panel.add(scrollPane);
+            panel.add(scrollPane2);
+//            SwingUtilities.updateComponentTreeUI(frame);
+
+
+            panel.add(proceedDvdBtn);
+
+            JList dvdList = new JList();
+            List<String> dvds = new ArrayList<>();
+            proceedDvdBtn.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    try {
+                        outputStream.writeObject("list movies for category");
+                        outputStream.writeObject(category[categoryJList.getSelectedIndex()]);
+                        List<DVD> movieList = (ArrayList<DVD>) inStream.readObject();
+
+                        for (DVD dvd : movieList) {
+                            dvds.add(String.format("%s ----- %s ----- %s ----- %s", dvd.getDvdNumber(), dvd.getTitle(),
+                                    dvd.getCategory(), dvd.getPrice()));
+                        }
+
+                        dvdList.setListData(dvds.toArray());
+
+                        JScrollPane scrollPane3 = new JScrollPane(dvdList);
+                        panel.add(scrollPane3);
+                        panel.add(rentDvdBtn);
+                        SwingUtilities.updateComponentTreeUI(frame);
+                    } catch (IOException | ClassNotFoundException ioException) {
+                        ioException.printStackTrace();
+                    }
+                }
+            });
+
+            rentDvdBtn.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    String custNumber = new StringTokenizer(customerJList.getSelectedValue()).nextToken(" ----- ");
+                    String dvdNumber = new StringTokenizer((String) dvdList.getSelectedValue()).nextToken(" ----- ");
+
+                    try {
+
+                        outputStream.writeObject("rent dvd");
+                        outputStream.writeObject(custNumber);
+                        outputStream.writeObject(dvdNumber);
+
+                        String message = (String) inStream.readObject();
+
+                        JOptionPane.showMessageDialog(frame, message, "Message Dialog", JOptionPane.INFORMATION_MESSAGE);
+
+                    } catch (IOException | ClassNotFoundException ioException) {
+                        ioException.printStackTrace();
+                    }
+                }
+            });
+
+        } catch (IOException | ClassNotFoundException ex) {
+            ex.printStackTrace();
+        }
+
+
+        mainPanel.add(new JLabel("Rent DVD"));
+        mainPanel.add(panel);
+        return mainPanel;
     }
 
     private static JPanel customerPanel() {
         JPanel mainPanel = new JPanel();
         JPanel panel = new JPanel();
-        GridLayout gridLayout = new GridLayout(0,2);
+        GridLayout gridLayout = new GridLayout(0, 2);
         panel.setLayout(gridLayout);
         panel.setSize(300, 50);
 
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.PAGE_AXIS));
 
         JTextField nameTextField = new JTextField("name", 12);
-        JTextField surnameTextField = new JTextField("surname",12);
-        JTextField phoneNumTextField = new JTextField("phone number",12);
+        JTextField surnameTextField = new JTextField("surname", 12);
+        JTextField phoneNumTextField = new JTextField("phone number", 12);
 
         JButton addCustomerBtn = new JButton("Add New Customer");
         addCustomerBtn.setSize(75, 75);
@@ -128,7 +231,7 @@ public class Client {
     private static JPanel dvdPanel() {
         JPanel mainPanel = new JPanel();
         JPanel panel = new JPanel();
-        GridLayout gridLayout = new GridLayout(0,2);
+        GridLayout gridLayout = new GridLayout(0, 2);
         panel.setLayout(gridLayout);
         panel.setSize(400, 50);
 
@@ -136,7 +239,7 @@ public class Client {
 
         JTextField titleTextField = new JTextField("title", 8);
 
-        String [] category = {"horror", "Sci-fi", "Drama", "Romance", "Comedy", "Action", "Cartoon"};
+        String[] category = {"horror", "Sci-fi", "Drama", "Romance", "Comedy", "Action", "Cartoon"};
         JList categoryList = new JList(category);
 
         JScrollPane categoryScrollPane = new JScrollPane(categoryList);
@@ -198,9 +301,9 @@ public class Client {
             @Override
             public void actionPerformed(ActionEvent e) {
                 try {
-                    String [] [] data;
+                    String[][] data;
 
-                    String [] columnNames = {"#",  "Date Rented", "Date Returned", "Customer Number", "DVD Number", "Total Penalty Cost"};
+                    String[] columnNames = {"#", "Date Rented", "Date Returned", "Customer Number", "DVD Number", "Total Penalty Cost"};
                     List<Rental> rentalList;
 
                     outputStream.writeObject("list rentals");
@@ -214,8 +317,8 @@ public class Client {
                         data[i][0] = ((Integer) el.getRentalNumber()).toString();
                         data[i][1] = el.getDateRented();
                         data[i][2] = el.getDateReturned();
-                        data[i][3] = ((Integer)el.getCustNumber()).toString();
-                        data[i][4] = ((Integer)el.getDvdNumber()).toString();
+                        data[i][3] = ((Integer) el.getCustNumber()).toString();
+                        data[i][4] = ((Integer) el.getDvdNumber()).toString();
                         data[i][5] = ((Double) el.getTotalPenaltyCost()).toString();
                     }
 
@@ -237,6 +340,64 @@ public class Client {
         return panel;
     }
 
+    private static JPanel returnRentalPanel() {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.PAGE_AXIS));
+        panel.setSize(300, 50);
+        JButton returnRentalBtn = new JButton("Return Rental");
+        returnRentalBtn.setSize(150, 150);
+        try {
+            String[][] data;
+
+            String[] columnNames = {"#", "Date Rented", "Date Returned", "Customer Number", "DVD Number", "Total Penalty Cost"};
+            List<Rental> rentalList;
+
+            outputStream.writeObject("list outstanding rentals");
+            rentalList = (ArrayList<Rental>) inStream.readObject();
+
+            int size = rentalList.size();
+            data = new String[size][6];
+
+            for (int i = 0; i < size; i++) {
+                Rental el = rentalList.get(i);
+                data[i][0] = ((Integer) el.getRentalNumber()).toString();
+                data[i][1] = el.getDateRented();
+                data[i][2] = el.getDateReturned();
+                data[i][3] = ((Integer) el.getCustNumber()).toString();
+                data[i][4] = ((Integer) el.getDvdNumber()).toString();
+                data[i][5] = ((Double) el.getTotalPenaltyCost()).toString();
+            }
+
+            JTable table = new JTable(data, columnNames);
+            JScrollPane scrollPane = new JScrollPane(table);
+            scrollPane.setPreferredSize(new Dimension(800, 100));
+            SwingUtilities.updateComponentTreeUI(frame);
+
+            returnRentalBtn.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    try {
+//                        System.out.println(rentalList.get(table.getSelectedRow()));
+                        outputStream.writeObject("return dvd");
+                        outputStream.writeObject(rentalList.get(table.getSelectedRow()));
+                    } catch (IOException ioException) {
+                        ioException.printStackTrace();
+                    }
+                }
+            });
+
+            panel.add(new JLabel("Return Rental"));
+            panel.add(scrollPane);
+            panel.add(returnRentalBtn);
+
+        } catch (IOException | ClassNotFoundException ex) {
+            ex.printStackTrace();
+        }
+
+
+        return panel;
+    }
+
     private static JPanel outstandingRentalListPanel() {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.PAGE_AXIS));
@@ -247,9 +408,9 @@ public class Client {
             @Override
             public void actionPerformed(ActionEvent e) {
                 try {
-                    String [] [] data;
+                    String[][] data;
 
-                    String [] columnNames = {"#",  "Date Rented", "Date Returned", "Customer Number", "DVD Number", "Total Penalty Cost"};
+                    String[] columnNames = {"#", "Date Rented", "Date Returned", "Customer Number", "DVD Number", "Total Penalty Cost"};
                     List<Rental> rentalList;
 
                     outputStream.writeObject("list outstanding rentals");
@@ -263,8 +424,8 @@ public class Client {
                         data[i][0] = ((Integer) el.getRentalNumber()).toString();
                         data[i][1] = el.getDateRented();
                         data[i][2] = el.getDateReturned();
-                        data[i][3] = ((Integer)el.getCustNumber()).toString();
-                        data[i][4] = ((Integer)el.getDvdNumber()).toString();
+                        data[i][3] = ((Integer) el.getCustNumber()).toString();
+                        data[i][4] = ((Integer) el.getDvdNumber()).toString();
                         data[i][5] = ((Double) el.getTotalPenaltyCost()).toString();
                     }
 
@@ -298,9 +459,9 @@ public class Client {
             @Override
             public void actionPerformed(ActionEvent e) {
                 try {
-                    String [] [] data;
+                    String[][] data;
 
-                    String [] columnNames = {"#",  "Date Rented", "Date Returned", "Customer Number", "DVD Number", "Total Penalty Cost"};
+                    String[] columnNames = {"#", "Date Rented", "Date Returned", "Customer Number", "DVD Number", "Total Penalty Cost"};
                     List<Rental> rentalList;
 
                     outputStream.writeObject(searchTextField.getText());
@@ -314,8 +475,8 @@ public class Client {
                         data[i][0] = ((Integer) el.getRentalNumber()).toString();
                         data[i][1] = el.getDateRented();
                         data[i][2] = el.getDateReturned();
-                        data[i][3] = ((Integer)el.getCustNumber()).toString();
-                        data[i][4] = ((Integer)el.getDvdNumber()).toString();
+                        data[i][3] = ((Integer) el.getCustNumber()).toString();
+                        data[i][4] = ((Integer) el.getDvdNumber()).toString();
                         data[i][5] = ((Double) el.getTotalPenaltyCost()).toString();
                     }
 
@@ -344,13 +505,15 @@ public class Client {
         JTextField searchTextField = new JTextField("Enter a name for a movie");
         searchTextField.setSize(100, 50);
 
+        panel.setSize(500, 150);
+
         searchTextField.getDocument().addDocumentListener(new DocumentListener() {
             @Override
             public void insertUpdate(DocumentEvent e) {
                 try {
-                    String [] [] data;
+                    String[][] data;
 
-                    String [] columnNames = {"#",  "Date Rented", "Date Returned", "Customer Number", "DVD Number", "Total Penalty Cost"};
+                    String[] columnNames = {"#", "Date Rented", "Date Returned", "Customer Number", "DVD Number", "Total Penalty Cost"};
                     List<DVD> movieList;
 
                     outputStream.writeObject("search movies");
@@ -396,7 +559,6 @@ public class Client {
         return panel;
     }
 
-
     private static JPanel movieListPanel() {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.PAGE_AXIS));
@@ -407,9 +569,9 @@ public class Client {
             @Override
             public void actionPerformed(ActionEvent e) {
                 try {
-                    String [] [] data;
+                    String[][] data;
 
-                    String [] columnNames = {"#",  "Title", "Category", "Price", "New Release", "Available for Rent"};
+                    String[] columnNames = {"#", "Title", "Category", "Price", "New Release", "Available for Rent"};
                     List<DVD> movieList;
 
                     outputStream.writeObject("list movies");
@@ -448,7 +610,7 @@ public class Client {
 
     private static JPanel customerListPanel() {
         JPanel panel = new JPanel();
-        GridLayout gridLayout = new GridLayout(3,1);
+        GridLayout gridLayout = new GridLayout(3, 1);
         panel.setLayout(new BoxLayout(panel, BoxLayout.PAGE_AXIS));
         panel.setSize(300, 50);
         JLabel label = new JLabel("List customers");
@@ -458,9 +620,9 @@ public class Client {
             @Override
             public void actionPerformed(ActionEvent e) {
                 try {
-                    String [] [] data;
+                    String[][] data;
 
-                    String [] columnNames = {"#",  "Firstname", "Surname", "Phone Number", "Credit", "Can Rent"};
+                    String[] columnNames = {"#", "Firstname", "Surname", "Phone Number", "Credit", "Can Rent"};
                     List<Customer> customerList;
 
                     outputStream.writeObject("list customers");

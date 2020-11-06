@@ -1,10 +1,19 @@
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.security.SecureRandom;
 import java.sql.*;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Date;
+
+import static java.time.temporal.ChronoUnit.DAYS;
 
 public class Server {
 
@@ -50,15 +59,15 @@ public class Server {
 
     public void receiveData() {
         try {
-
             while (true) {
                 String in = (String) inputStream.readObject();
 
                 switch (in.toLowerCase()) {
-                    /*case "send customers": {
-                        returnCustomers();
+                    case "list movies for category": {
+                        String category = (String) inputStream.readObject();
+                        listMovies(category);
                         break;
-                    }*/
+                    }
                     case "add customer": {
                         addCustomer();
                         break;
@@ -67,17 +76,17 @@ public class Server {
                         addDvd();
                         break;
                     }
-                    /*
-                    case "rental dvd": {
+
+                    case "rent dvd": {
                         rentDbd();
                         break;
                     }
                     case "return dvd":{
                         returnDvd();
                         break;
-                    }*/
+                    }
                     case "list movies": {
-                        listMovies();
+                        listMovies(null);
                         break;
                     }
                     case "list customers": {
@@ -106,6 +115,78 @@ public class Server {
             e.printStackTrace();
         }
     }
+
+    private void returnDvd() {
+        try {
+            Rental rental = (Rental) inputStream.readObject();
+            stmt.executeUpdate("update CUSTOMER set CANRENT=true where CUSTNUMBER=" + rental.getCustNumber());
+            stmt.executeUpdate("update DVD set AVAILABLEFORRENT=true where DVDNUMBER=" + rental.getDvdNumber());
+
+            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd");
+            LocalDateTime now = LocalDateTime.now();
+
+            DateFormat format = new SimpleDateFormat("yyyy/MM/dd");
+            Date rentalDate = format.parse(rental.getDateRented());
+
+            long timeElapsed = DAYS.between(rentalDate.toInstant(), new Date().toInstant());
+
+            double totalCostPenalty;
+
+            if (timeElapsed > 1)
+                totalCostPenalty = 0;
+            else
+                totalCostPenalty = (timeElapsed - 1) * 5.0;
+
+            stmt.executeUpdate("update RENTAL set DATERETURNED='" + dtf.format(now) + "', TOTALPENALTYCOST=" + totalCostPenalty
+                    + " where RENTALNUMBER=" + rental.getRentalNumber());
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void rentDbd() {
+        try {
+            String custNumber = ((String) inputStream.readObject()).trim();
+            String dvdNumber =  ((String) inputStream.readObject()).trim();
+
+            stmt.executeUpdate("update DVD set AVAILABLEFORRENT=false where DVDNUMBER=" + dvdNumber);
+            stmt.executeUpdate("update CUSTOMER set CANRENT=false where CUSTNUMBER=" + custNumber);
+
+            PreparedStatement statement = conn.prepareStatement("insert into rental values (?, ?, ?, ?, ?, ?)");
+            int randomRentalNum = Math.abs(new SecureRandom().nextInt(97845641));
+
+            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd");
+            LocalDateTime now = LocalDateTime.now();
+
+            statement.setInt(1, randomRentalNum);
+            statement.setString(2, dtf.format(now));
+            statement.setString(3, "NA");
+            statement.setDouble(4, 0);
+            statement.setInt(5, Integer.parseInt(custNumber));
+            statement.setInt(6, Integer.parseInt(dvdNumber));
+
+            statement.executeUpdate();
+
+            outStream.writeObject("Rental operation done with success!!!");
+            outStream.flush();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
+
+    }
+
 
     private void searchMovie() {
         try {
@@ -171,9 +252,18 @@ public class Server {
         }
     }
 
-    private void listMovies() {
+    private void listMovies(String categorySearch) {
         try{
-            ResultSet set = stmt.executeQuery("SELECT * FROM DVD");
+
+            ResultSet set;
+
+            if(categorySearch != null) {
+                set = stmt.executeQuery("select * from DVD where upper(CATEGORY) like '%" +
+                        categorySearch.toUpperCase() + "%' AND AVAILABLEFORRENT = true");
+            } else {
+                set = stmt.executeQuery("SELECT * FROM DVD");
+            }
+
             List<DVD> dvdList = new ArrayList<>();
 
             while (set.next()){
