@@ -81,9 +81,7 @@ public class Client {
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.PAGE_AXIS));
 
         try {
-            String[][] data;
 
-            String[] columnNames = {"#", "Firstname", "Surname", "Phone Number", "Credit", "Can Rent"};
             List<Customer> customerList;
 
             outputStream.writeObject("list customers");
@@ -105,57 +103,50 @@ public class Client {
 
             panel.add(scrollPane);
             panel.add(scrollPane2);
-//            SwingUtilities.updateComponentTreeUI(frame);
 
 
             panel.add(proceedDvdBtn);
 
             JList dvdList = new JList();
             List<String> dvds = new ArrayList<>();
-            proceedDvdBtn.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    try {
-                        outputStream.writeObject("list movies for category");
-                        outputStream.writeObject(category[categoryJList.getSelectedIndex()]);
-                        List<DVD> movieList = (ArrayList<DVD>) inStream.readObject();
+            proceedDvdBtn.addActionListener(e -> {
+                try {
+                    outputStream.writeObject("list movies for category");
+                    outputStream.writeObject(category[categoryJList.getSelectedIndex()]);
+                    List<DVD> movieList = (ArrayList<DVD>) inStream.readObject();
 
-                        for (DVD dvd : movieList) {
-                            dvds.add(String.format("%s ----- %s ----- %s ----- %s", dvd.getDvdNumber(), dvd.getTitle(),
-                                    dvd.getCategory(), dvd.getPrice()));
-                        }
-
-                        dvdList.setListData(dvds.toArray());
-
-                        JScrollPane scrollPane3 = new JScrollPane(dvdList);
-                        panel.add(scrollPane3);
-                        panel.add(rentDvdBtn);
-                        SwingUtilities.updateComponentTreeUI(frame);
-                    } catch (IOException | ClassNotFoundException ioException) {
-                        ioException.printStackTrace();
+                    for (DVD dvd : movieList) {
+                        dvds.add(String.format("%s ----- %s ----- %s ----- %s", dvd.getDvdNumber(), dvd.getTitle(),
+                                dvd.getCategory(), dvd.getPrice()));
                     }
+
+                    dvdList.setListData(dvds.toArray());
+
+                    JScrollPane scrollPane3 = new JScrollPane(dvdList);
+                    panel.add(scrollPane3);
+                    panel.add(rentDvdBtn);
+                    SwingUtilities.updateComponentTreeUI(frame);
+                } catch (IOException | ClassNotFoundException ioException) {
+                    ioException.printStackTrace();
                 }
             });
 
-            rentDvdBtn.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    String custNumber = new StringTokenizer(customerJList.getSelectedValue()).nextToken(" ----- ");
-                    String dvdNumber = new StringTokenizer((String) dvdList.getSelectedValue()).nextToken(" ----- ");
+            rentDvdBtn.addActionListener(e -> {
+                String custNumber = new StringTokenizer(customerJList.getSelectedValue()).nextToken(" ----- ");
+                String dvdNumber = new StringTokenizer((String) dvdList.getSelectedValue()).nextToken(" ----- ");
 
-                    try {
+                try {
 
-                        outputStream.writeObject("rent dvd");
-                        outputStream.writeObject(custNumber);
-                        outputStream.writeObject(dvdNumber);
+                    outputStream.writeObject("rent dvd");
+                    outputStream.writeObject(custNumber);
+                    outputStream.writeObject(dvdNumber);
 
-                        String message = (String) inStream.readObject();
+                    String message = (String) inStream.readObject();
 
-                        JOptionPane.showMessageDialog(frame, message, "Message Dialog", JOptionPane.INFORMATION_MESSAGE);
+                    JOptionPane.showMessageDialog(frame, message, "Message Dialog", JOptionPane.INFORMATION_MESSAGE);
 
-                    } catch (IOException | ClassNotFoundException ioException) {
-                        ioException.printStackTrace();
-                    }
+                } catch (IOException | ClassNotFoundException ioException) {
+                    ioException.printStackTrace();
                 }
             });
 
@@ -185,32 +176,29 @@ public class Client {
         JButton addCustomerBtn = new JButton("Add New Customer");
         addCustomerBtn.setSize(75, 75);
 
-        addCustomerBtn.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                try {
-                    outputStream.writeObject("add customer");
-                    outputStream.flush();
-                    Customer newCustomer = new Customer();
-                    newCustomer.setCustNumber(Math.abs(new SecureRandom().nextInt(9456198)));
-                    newCustomer.setName(nameTextField.getText());
-                    newCustomer.setSurname(surnameTextField.getText());
-                    newCustomer.setPhoneNum(phoneNumTextField.getText());
-                    newCustomer.setCredit(100);
-                    newCustomer.setCanRent(true);
+        addCustomerBtn.addActionListener(e -> {
+            try {
+                outputStream.writeObject("add customer");
+                outputStream.flush();
+                Customer newCustomer = new Customer();
+                newCustomer.setCustNumber(Math.abs(new SecureRandom().nextInt(9456198)));
+                newCustomer.setName(nameTextField.getText());
+                newCustomer.setSurname(surnameTextField.getText());
+                newCustomer.setPhoneNum(phoneNumTextField.getText());
+                newCustomer.setCredit(100);
+                newCustomer.setCanRent(true);
 
-                    System.out.println(newCustomer);
+                System.out.println(newCustomer);
 
-                    nameTextField.setText("name");
-                    surnameTextField.setText("surname");
-                    phoneNumTextField.setText("phone number");
+                nameTextField.setText("name");
+                surnameTextField.setText("surname");
+                phoneNumTextField.setText("phone number");
 
-                    outputStream.flush();
-                    outputStream.writeObject(newCustomer);
+                outputStream.flush();
+                outputStream.writeObject(newCustomer);
 
-                } catch (IOException ioException) {
-                    ioException.printStackTrace();
-                }
+            } catch (IOException ioException) {
+                ioException.printStackTrace();
             }
         });
 
@@ -248,32 +236,29 @@ public class Client {
         JButton addDvdBtn = new JButton("Add New DVD");
         addDvdBtn.setSize(75, 75);
 
-        addDvdBtn.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                try {
-                    outputStream.writeObject("add dvd");
-                    outputStream.flush();
-                    DVD dvd = new DVD();
-                    dvd.setDvdNumber(Math.abs(new SecureRandom().nextInt()));
-                    dvd.setTitle(titleTextField.getText());
-                    dvd.setCategory(categoryList.getSelectedIndex());
-                    dvd.setRelease(newReleaseCheckbox.getState());
-                    dvd.setAvailable(availableForRentCheckbox.getState());
+        addDvdBtn.addActionListener(e -> {
+            try {
+                outputStream.writeObject("add dvd");
+                outputStream.flush();
+                DVD dvd = new DVD();
+                dvd.setDvdNumber(Math.abs(new SecureRandom().nextInt()));
+                dvd.setTitle(titleTextField.getText());
+                dvd.setCategory(categoryList.getSelectedIndex());
+                dvd.setRelease(newReleaseCheckbox.getState());
+                dvd.setAvailable(availableForRentCheckbox.getState());
 
-                    System.out.println(dvd);
+                System.out.println(dvd);
 
-                    titleTextField.setText("title");
-                    categoryList.setSelectedIndex(1);
-                    newReleaseCheckbox.setState(false);
-                    availableForRentCheckbox.setState(false);
+                titleTextField.setText("title");
+                categoryList.setSelectedIndex(1);
+                newReleaseCheckbox.setState(false);
+                availableForRentCheckbox.setState(false);
 
-                    outputStream.flush();
-                    outputStream.writeObject(dvd);
+                outputStream.flush();
+                outputStream.writeObject(dvd);
 
-                } catch (IOException ioException) {
-                    ioException.printStackTrace();
-                }
+            } catch (IOException ioException) {
+                ioException.printStackTrace();
             }
         });
 
@@ -370,16 +355,12 @@ public class Client {
             scrollPane.setPreferredSize(new Dimension(800, 100));
             SwingUtilities.updateComponentTreeUI(frame);
 
-            returnRentalBtn.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    try {
-//                        System.out.println(rentalList.get(table.getSelectedRow()));
-                        outputStream.writeObject("return dvd");
-                        outputStream.writeObject(rentalList.get(table.getSelectedRow()));
-                    } catch (IOException ioException) {
-                        ioException.printStackTrace();
-                    }
+            returnRentalBtn.addActionListener(e -> {
+                try {
+                    outputStream.writeObject("return dvd");
+                    outputStream.writeObject(rentalList.get(table.getSelectedRow()));
+                } catch (IOException ioException) {
+                    ioException.printStackTrace();
                 }
             });
 
@@ -452,40 +433,37 @@ public class Client {
         searchTextField.setSize(100, 50);
 
         searchRentalsBtn.setSize(150, 150);
-        searchRentalsBtn.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                try {
-                    String[][] data;
+        searchRentalsBtn.addActionListener(e -> {
+            try {
+                String[][] data;
 
-                    String[] columnNames = {"#", "Date Rented", "Date Returned", "Customer Number", "DVD Number", "Total Penalty Cost"};
-                    List<Rental> rentalList;
+                String[] columnNames = {"#", "Date Rented", "Date Returned", "Customer Number", "DVD Number", "Total Penalty Cost"};
+                List<Rental> rentalList;
 
-                    outputStream.writeObject(searchTextField.getText());
-                    rentalList = (ArrayList<Rental>) inStream.readObject();
+                outputStream.writeObject(searchTextField.getText());
+                rentalList = (ArrayList<Rental>) inStream.readObject();
 
-                    int size = rentalList.size();
-                    data = new String[size][6];
+                int size = rentalList.size();
+                data = new String[size][6];
 
-                    for (int i = 0; i < size; i++) {
-                        Rental el = rentalList.get(i);
-                        data[i][0] = ((Integer) el.getRentalNumber()).toString();
-                        data[i][1] = el.getDateRented();
-                        data[i][2] = el.getDateReturned();
-                        data[i][3] = ((Integer) el.getCustNumber()).toString();
-                        data[i][4] = ((Integer) el.getDvdNumber()).toString();
-                        data[i][5] = ((Double) el.getTotalPenaltyCost()).toString();
-                    }
-
-                    JTable table = new JTable(data, columnNames);
-                    JScrollPane scrollPane = new JScrollPane(table);
-                    scrollPane.setPreferredSize(new Dimension(800, 100));
-                    panel.add(scrollPane);
-                    SwingUtilities.updateComponentTreeUI(frame);
-
-                } catch (IOException | ClassNotFoundException ex) {
-                    ex.printStackTrace();
+                for (int i = 0; i < size; i++) {
+                    Rental el = rentalList.get(i);
+                    data[i][0] = ((Integer) el.getRentalNumber()).toString();
+                    data[i][1] = el.getDateRented();
+                    data[i][2] = el.getDateReturned();
+                    data[i][3] = ((Integer) el.getCustNumber()).toString();
+                    data[i][4] = ((Integer) el.getDvdNumber()).toString();
+                    data[i][5] = ((Double) el.getTotalPenaltyCost()).toString();
                 }
+
+                JTable table = new JTable(data, columnNames);
+                JScrollPane scrollPane = new JScrollPane(table);
+                scrollPane.setPreferredSize(new Dimension(800, 100));
+                panel.add(scrollPane);
+                SwingUtilities.updateComponentTreeUI(frame);
+
+            } catch (IOException | ClassNotFoundException ex) {
+                ex.printStackTrace();
             }
         });
 
@@ -562,40 +540,37 @@ public class Client {
         panel.setSize(300, 50);
         JButton listMoviesBtn = new JButton("List Movies");
         listMoviesBtn.setSize(150, 150);
-        listMoviesBtn.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                try {
-                    String[][] data;
+        listMoviesBtn.addActionListener(e -> {
+            try {
+                String[][] data;
 
-                    String[] columnNames = {"#", "Title", "Category", "Price", "New Release", "Available for Rent"};
-                    List<DVD> movieList;
+                String[] columnNames = {"#", "Title", "Category", "Price", "New Release", "Available for Rent"};
+                List<DVD> movieList;
 
-                    outputStream.writeObject("list movies");
-                    movieList = (ArrayList<DVD>) inStream.readObject();
+                outputStream.writeObject("list movies");
+                movieList = (ArrayList<DVD>) inStream.readObject();
 
-                    int size = movieList.size();
-                    data = new String[size][6];
+                int size = movieList.size();
+                data = new String[size][6];
 
-                    for (int i = 0; i < size; i++) {
-                        DVD el = movieList.get(i);
-                        data[i][0] = ((Integer) el.getDvdNumber()).toString();
-                        data[i][1] = el.getTitle();
-                        data[i][2] = el.getCategory();
-                        data[i][3] = ((Double) el.getPrice()).toString();
-                        data[i][4] = ((Boolean) el.isNewRelease()).toString();
-                        data[i][5] = ((Boolean) el.isAvailable()).toString();
-                    }
-
-                    JTable table = new JTable(data, columnNames);
-                    JScrollPane scrollPane = new JScrollPane(table);
-                    scrollPane.setPreferredSize(new Dimension(800, 100));
-                    panel.add(scrollPane);
-                    SwingUtilities.updateComponentTreeUI(frame);
-
-                } catch (IOException | ClassNotFoundException ex) {
-                    ex.printStackTrace();
+                for (int i = 0; i < size; i++) {
+                    DVD el = movieList.get(i);
+                    data[i][0] = ((Integer) el.getDvdNumber()).toString();
+                    data[i][1] = el.getTitle();
+                    data[i][2] = el.getCategory();
+                    data[i][3] = ((Double) el.getPrice()).toString();
+                    data[i][4] = ((Boolean) el.isNewRelease()).toString();
+                    data[i][5] = ((Boolean) el.isAvailable()).toString();
                 }
+
+                JTable table = new JTable(data, columnNames);
+                JScrollPane scrollPane = new JScrollPane(table);
+                scrollPane.setPreferredSize(new Dimension(800, 100));
+                panel.add(scrollPane);
+                SwingUtilities.updateComponentTreeUI(frame);
+
+            } catch (IOException | ClassNotFoundException ex) {
+                ex.printStackTrace();
             }
         });
 

@@ -19,15 +19,10 @@ public class Server {
 
     private ObjectInputStream inputStream;
     private ObjectOutputStream outStream;
-    private ObjectInputStream inputStreamSer;
-    private Socket client;
 
-    // Database variables
-    private final String JDBC_DRIVER = "org.apache.derby.jdbc.EmbeddedDriver";
-    private final String DB_URL = "jdbc:derby:DvDRentalDb;create=true";
     private Connection conn = null;
     private Statement stmt = null;
-    private DbInitializer dbInitializer;
+    private final DbInitializer dbInitializer;
 
     public Server() {
         dbInitializer = new DbInitializer();
@@ -48,7 +43,7 @@ public class Server {
     public void initiateServerConnection() {
         try{
             System.out.println("Server initiated waiting on port " + 5559);
-            client = new ServerSocket(5559).accept();
+            Socket client = new ServerSocket(5559).accept();
 
             outStream = new ObjectOutputStream(client.getOutputStream());
             inputStream = new ObjectInputStream(client.getInputStream());
@@ -63,52 +58,20 @@ public class Server {
                 String in = (String) inputStream.readObject();
 
                 switch (in.toLowerCase()) {
-                    case "list movies for category": {
+                    case "list movies for category" -> {
                         String category = (String) inputStream.readObject();
                         listMovies(category);
-                        break;
                     }
-                    case "add customer": {
-                        addCustomer();
-                        break;
-                    }
-                    case "add dvd": {
-                        addDvd();
-                        break;
-                    }
-
-                    case "rent dvd": {
-                        rentDbd();
-                        break;
-                    }
-                    case "return dvd":{
-                        returnDvd();
-                        break;
-                    }
-                    case "list movies": {
-                        listMovies(null);
-                        break;
-                    }
-                    case "list customers": {
-                        listCustomers();
-                        break;
-                    }
-                    case "list rentals": {
-                        listRentals("all");
-                        break;
-                    }
-                    case "list outstanding rentals": {
-                        listRentals("outstanding");
-                        break;
-                    }
-                    case "search movies": {
-                        searchMovie();
-                        break;
-                    }
-                    default: {
-                        listRentals(in); // this the case where the in value will contain a slash /
-                        break;
-                    }
+                    case "add customer" -> addCustomer();
+                    case "add dvd" -> addDvd();
+                    case "rent dvd" -> rentDbd();
+                    case "return dvd" -> returnDvd();
+                    case "list movies" -> listMovies(null);
+                    case "list customers" -> listCustomers();
+                    case "list rentals" -> listRentals("all");
+                    case "list outstanding rentals" -> listRentals("outstanding");
+                    case "search movies" -> searchMovie();
+                    default -> listRentals(in); // this the case where the in value will contain a slash /
                 }
             }
         }catch(IOException | ClassNotFoundException e){
@@ -140,13 +103,7 @@ public class Server {
             stmt.executeUpdate("update RENTAL set DATERETURNED='" + dtf.format(now) + "', TOTALPENALTYCOST=" + totalCostPenalty
                     + " where RENTALNUMBER=" + rental.getRentalNumber());
 
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
-        } catch (ParseException e) {
+        } catch (IOException | ClassNotFoundException | SQLException | ParseException e) {
             e.printStackTrace();
         }
     }
@@ -177,12 +134,8 @@ public class Server {
             outStream.writeObject("Rental operation done with success!!!");
             outStream.flush();
 
-        } catch (IOException e) {
+        } catch (IOException | ClassNotFoundException | SQLException e) {
             e.printStackTrace();
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
         }
 
     }
@@ -193,28 +146,9 @@ public class Server {
             String in = (String) inputStream.readObject();
 
             ResultSet set = stmt.executeQuery("select * from DVD where upper(TITLE) like '%" + in.toUpperCase() + "%'");
-            List<DVD> dvdList = new ArrayList<>();
-
-            while (set.next()){
-                int dvdNumber= set.getInt("dvdNumber");
-                String title = set.getString("title");
-                String category = set.getString("category");
-                boolean newRelease = set.getBoolean("newRelease");
-                boolean availableForRent = set.getBoolean("availableForRent");
-
-                DVD dvd = new DVD(dvdNumber, title, category, newRelease, availableForRent);
-                dvdList.add(dvd);
-            }
-            dvdList.sort(Comparator.comparing(DVD::getCategory));
-
-            outStream.writeObject(dvdList);
-            outStream.flush();
-        } catch (IOException e) {
+            getDvdList(set);
+        } catch (IOException | ClassNotFoundException | SQLException e) {
             e.printStackTrace();
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
         }
     }
 
@@ -235,7 +169,6 @@ public class Server {
                 int rentalNumber= set.getInt("rentalNumber");
                 String dateRented = set.getString("dateRented");
                 String dateReturned = set.getString("dateReturned");
-                double totalPenaltyCost = set.getDouble("totalPenaltyCost");
                 int custNumber = set.getInt("custNumber");
                 int dvdNumber = set.getInt("dvdNumber");
 
@@ -264,25 +197,29 @@ public class Server {
                 set = stmt.executeQuery("SELECT * FROM DVD");
             }
 
-            List<DVD> dvdList = new ArrayList<>();
-
-            while (set.next()){
-                int dvdNumber= set.getInt("dvdNumber");
-                String title = set.getString("title");
-                String category = set.getString("category");
-                boolean newRelease = set.getBoolean("newRelease");
-                boolean availableForRent = set.getBoolean("availableForRent");
-
-                DVD dvd = new DVD(dvdNumber, title, category, newRelease, availableForRent);
-                dvdList.add(dvd);
-            }
-            dvdList.sort(Comparator.comparing(DVD::getCategory));
-
-            outStream.writeObject(dvdList);
-            outStream.flush();
+            getDvdList(set);
         }catch (SQLException | IOException e){
             e.printStackTrace();
         }
+    }
+
+    private void getDvdList(ResultSet set) throws SQLException, IOException {
+        List<DVD> dvdList = new ArrayList<>();
+
+        while (set.next()){
+            int dvdNumber= set.getInt("dvdNumber");
+            String title = set.getString("title");
+            String category = set.getString("category");
+            boolean newRelease = set.getBoolean("newRelease");
+            boolean availableForRent = set.getBoolean("availableForRent");
+
+            DVD dvd = new DVD(dvdNumber, title, category, newRelease, availableForRent);
+            dvdList.add(dvd);
+        }
+        dvdList.sort(Comparator.comparing(DVD::getCategory));
+
+        outStream.writeObject(dvdList);
+        outStream.flush();
     }
 
     private void listCustomers() {
@@ -313,52 +250,55 @@ public class Server {
 
     private void addDvd() {
         try {
-            DVD dvd = (DVD) inputStream.readObject();
-
-            PreparedStatement statement = conn.prepareStatement("insert into dvd values (?, ?, ?, ?, ?, ?)");
-            statement.setInt(1, dvd.getDvdNumber());
-            statement.setString(2, dvd.getTitle());
-            statement.setString(3, dvd.getCategory());
-            statement.setDouble(4, dvd.getPrice());
-            statement.setBoolean(5, dvd.isNewRelease());
-            statement.setBoolean(6, dvd.isAvailable());
-
-            statement.executeUpdate();
-        } catch (IOException e) {
+            insertDvdIntoDatabase(inputStream);
+        } catch (IOException | ClassNotFoundException | SQLException e) {
             e.printStackTrace();
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
         }
+    }
+
+    private void insertDvdIntoDatabase(ObjectInput inputStream) throws IOException, ClassNotFoundException, SQLException {
+        DVD dvd = (DVD) inputStream.readObject();
+
+        PreparedStatement statement = conn.prepareStatement("insert into dvd values (?, ?, ?, ?, ?, ?)");
+        statement.setInt(1, dvd.getDvdNumber());
+        statement.setString(2, dvd.getTitle());
+        statement.setString(3, dvd.getCategory());
+        statement.setDouble(4, dvd.getPrice());
+        statement.setBoolean(5, dvd.isNewRelease());
+        statement.setBoolean(6, dvd.isAvailable());
+
+        statement.executeUpdate();
     }
 
     private void addCustomer() {
         try {
-            Customer customer = (Customer) inputStream.readObject();
-
-            PreparedStatement statement = conn.prepareStatement("insert into customer values (?, ?, ?, ?, ?, ?)");
-            statement.setInt(1, customer.getCustNumber());
-            statement.setString(2, customer.getName());
-            statement.setString(3, customer.getSurname());
-            statement.setString(4, customer.getPhoneNum());
-            statement.setDouble(5, customer.getCredit());
-            statement.setBoolean(6, customer.canRent());
-
-            statement.executeUpdate();
-        } catch (IOException e) {
+            insertCustomerIntoDatabase(inputStream);
+        } catch (IOException | ClassNotFoundException | SQLException e) {
             e.printStackTrace();
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
         }
+    }
+
+    private void insertCustomerIntoDatabase(ObjectInput inputStream) throws IOException, ClassNotFoundException, SQLException {
+        Customer customer = (Customer) inputStream.readObject();
+
+        PreparedStatement statement = conn.prepareStatement("insert into customer values (?, ?, ?, ?, ?, ?)");
+        statement.setInt(1, customer.getCustNumber());
+        statement.setString(2, customer.getName());
+        statement.setString(3, customer.getSurname());
+        statement.setString(4, customer.getPhoneNum());
+        statement.setDouble(5, customer.getCredit());
+        statement.setBoolean(6, customer.canRent());
+
+        statement.executeUpdate();
     }
 
     private void createDbConnection() {
         try {
             System.out.println("Connecting to database...");
+            // Database variables
+            String JDBC_DRIVER = "org.apache.derby.jdbc.EmbeddedDriver";
             Class.forName(JDBC_DRIVER);
+            String DB_URL = "jdbc:derby:DvDRentalDb;create=true";
             conn = DriverManager.getConnection(DB_URL);
             System.out.println("Connection successful!");
         } catch (Exception except) {
@@ -444,17 +384,7 @@ public class Server {
             ) {
                 while (true) {
                     //deserialize the List
-                    Customer customer = (Customer) input.readObject();
-
-                    PreparedStatement statement = conn.prepareStatement("insert into customer values (?, ?, ?, ?, ?, ?)");
-                    statement.setInt(1, customer.getCustNumber());
-                    statement.setString(2, customer.getName());
-                    statement.setString(3, customer.getSurname());
-                    statement.setString(4, customer.getPhoneNum());
-                    statement.setDouble(5, customer.getCredit());
-                    statement.setBoolean(6, customer.canRent());
-
-                    statement.executeUpdate();
+                    insertCustomerIntoDatabase(input);
                     num++;
                 }
 
@@ -474,17 +404,7 @@ public class Server {
                 num = 0;
                 while (true) {
                     //deserialize the List
-                    DVD dvd = (DVD) input.readObject();
-
-                    PreparedStatement statement = conn.prepareStatement("insert into dvd values (?, ?, ?, ?, ?, ?)");
-                    statement.setInt(1, dvd.getDvdNumber());
-                    statement.setString(2, dvd.getTitle());
-                    statement.setString(3, dvd.getCategory());
-                    statement.setDouble(4, dvd.getPrice());
-                    statement.setBoolean(5, dvd.isNewRelease());
-                    statement.setBoolean(6, dvd.isAvailable());
-
-                    statement.executeUpdate();
+                    insertDvdIntoDatabase(input);
                     num++;
                 }
 
