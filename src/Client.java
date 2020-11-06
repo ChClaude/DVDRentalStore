@@ -32,9 +32,6 @@ public class Client {
 
         JPanel mainPanel = new JPanel();
 
-        GridLayout layout = new GridLayout(9, 1);
-        layout.setVgap(50);
-//        mainPanel.setLayout(layout);
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.PAGE_AXIS));
 
         mainPanel.add(customerPanel());
@@ -52,7 +49,7 @@ public class Client {
 
         frame.add(new JScrollPane(mainPanel));
 
-        frame.setSize(900, 700);
+        frame.setSize(1000, 700);
         frame.setVisible(true);
     }
 
