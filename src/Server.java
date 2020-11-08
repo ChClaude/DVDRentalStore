@@ -15,6 +15,11 @@ import java.util.Date;
 
 import static java.time.temporal.ChronoUnit.DAYS;
 
+/**
+ * Server.java
+ * @author Lulamela Mfenyana
+ * student number: 208097104
+ */
 public class Server {
 
     private ObjectInputStream inputStream;

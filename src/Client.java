@@ -13,6 +13,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
 
+/**
+ * Client.java
+ * @author Lulamela Mfenyana
+ * student number: 208097104
+ */
 public class Client {
 
     private static ObjectInputStream inStream;
